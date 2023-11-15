@@ -10,7 +10,8 @@ public class Main {
 
         Text text = new Text();
         text.parseText(readFile());
-        text.setOnGroups();
+        System.out.println(text.lines);
+        text.setGroups();
 
         long endTiming = System.currentTimeMillis();
         System.out.printf("Время работы программы: %d миллисекунд", (endTiming -  startTiming));
