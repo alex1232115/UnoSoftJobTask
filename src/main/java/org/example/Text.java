@@ -3,86 +3,103 @@ package org.example;
 import java.io.*;
 import java.util.*;
 
-/*
-"79748671113";"";"79448126993""
-"79748671113";"";"79448126993"
-"79748671113"asd;"";"79448126993"
-"79855053897"83100000580443402";"200000133000191"
-"8383"200000741652251"
-"5";"6"
- */
-
 public class Text {
-    Set<List<String>> lines = new HashSet<>();
 
-    public void parseText(File file) throws IOException {
+    public Set<String> parseText(File file) throws IOException {
+        Set<String> lines = new LinkedHashSet<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String str = reader.readLine();
             while (str != null) {
                 if (isValidLine(str)) {
-                    List<String> curLineWords = Arrays.asList((str.replace("\"", "").split(";")));
-                    lines.add(curLineWords);
+                    lines.add(str);
                 }
                 str = reader.readLine();
             }
         }
+        return lines;
     }
 
     private boolean isValidLine(String str) {
         for (String element : str.split(";")) {
             if (!element.matches("\"\\d*\"")) {
-                System.out.println(element);
                 return false;
             }
         }
         return true;
     }
 
-    public void setGroups() {
+    public List<List<String>> setGroups(Set<String> lines) {
+        //List<String> curLineWords = Arrays.asList(str.split(";", -1));
         List<List<String>> groups = new ArrayList<>();
 
-        Map<String, Integer> digitAndGroup = new HashMap<>();
-        Map<String, Integer> digitAndColumn = new HashMap<>();
+        Map<String, Integer> digitGroup = new HashMap<>();
+        Map<String, Integer> digitColumn = new HashMap<>();
 
-        int globalGroupIndex = 0;
-
-        for (List<String> curLineWords : lines) {
+        for (String line : lines) {
+            List<String> curLineWords = Arrays.asList(line.split(";", -1));
             int column = 0;
             boolean match = false;
 
             for (String word : curLineWords) {
-                if (word.equals("")) {
+                if (word.equals("\"\"")) {
                     column++;
                     continue;
                 }
 
-                if (digitAndColumn.containsKey(word)) {
-                    if (!match && digitAndColumn.get(word) == column) {
-                        int localGroupIndex = digitAndGroup.get(word);
+                if (digitColumn.containsKey(word)) {
+                    if (!match && digitColumn.get(word) == column) {
+                        int localGroupIndex = digitGroup.get(word);
                         groups.get(localGroupIndex).add(String.valueOf(curLineWords));
+
                         for (String s : curLineWords) {
-                            digitAndGroup.put(s, localGroupIndex);
+                            digitGroup.put(s, localGroupIndex);
                         }
                         match = true;
                     }
                 } else {
-                    digitAndColumn.put(word, column);
+                    digitColumn.put(word, column);
                 }
-
                 column++;
             }
 
             if (!match) {
                 for (String s : curLineWords) {
-                    digitAndGroup.put(s, globalGroupIndex);
+                    digitGroup.put(s, groups.size());
                 }
                 List<String> list = new ArrayList<>();
                 list.add(String.valueOf(curLineWords));
-                groups.add(globalGroupIndex, list);
-                globalGroupIndex++;
+                groups.add(list);
             }
         }
-        System.out.println(groups);
+        return groups;
+    }
+
+    public void printToFile(List<List<String>> groups, String fileName, int goodGroups) throws IOException {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
+            writer.write("количество полученных групп с более чем одним элементом: " + goodGroups);
+            writer.newLine();
+            groups.sort(new GroupOfLinesComparator());
+            int i = 1; //groups
+            for (List<String> list : groups) {
+                int j = 1; //lines
+                writer.write("Группа " + i);
+                writer.newLine();
+                for (String string : list) {
+                    String currentString = "строчка " + j + ": " +
+                            string.substring(1, string.length() - 1);
+                    writer.write(currentString);
+                    writer.newLine();
+                    j++;
+                }
+                i++;
+            }
+        }
+    }
+
+    static class GroupOfLinesComparator implements Comparator<List<String>> {
+        @Override
+        public int compare(List<String> o1, List<String> o2) {
+            return Integer.compare(o2.size(), o1.size());
+        }
     }
 }
-
