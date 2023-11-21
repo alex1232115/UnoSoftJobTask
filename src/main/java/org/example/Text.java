@@ -29,7 +29,6 @@ public class Text {
     }
 
     public List<List<String>> setGroups(Set<String> lines) {
-        //List<String> curLineWords = Arrays.asList(str.split(";", -1));
         List<List<String>> groups = new ArrayList<>();
 
         Map<String, Integer> digitGroup = new HashMap<>();
@@ -39,7 +38,7 @@ public class Text {
             List<String> curLineWords = Arrays.asList(line.split(";", -1));
             int column = 0;
             boolean match = false;
-
+            int indexCurrentGroup = -1;
             for (String word : curLineWords) {
                 if (word.equals("\"\"")) {
                     column++;
@@ -48,13 +47,21 @@ public class Text {
 
                 if (digitColumn.containsKey(word)) {
                     if (!match && digitColumn.get(word) == column) {
-                        int localGroupIndex = digitGroup.get(word);
-                        groups.get(localGroupIndex).add(String.valueOf(curLineWords));
-
-                        for (String s : curLineWords) {
-                            digitGroup.put(s, localGroupIndex);
-                        }
+                        indexCurrentGroup = digitGroup.get(word);
+                        groups.get(indexCurrentGroup).add(String.valueOf(curLineWords));
                         match = true;
+
+                    } else if (digitColumn.get(word) == column && digitGroup.get(word) != indexCurrentGroup) { //для объединения групп
+                        int oldIndex = digitGroup.get(word);
+                        groups.get(indexCurrentGroup).add(String.valueOf(groups.get(oldIndex)).replace("[", "")
+                                .replace("]", ""));
+                        //из группы достается большая строка, которая может быть склеена из нескольких
+                        for (String s : groups.remove(oldIndex)) {
+                            for (String string : s.replace("[", "").replace("]", "")
+                                    .replace("\"", "").split(",")) {
+                                digitGroup.put(string, indexCurrentGroup);
+                            }
+                        }
                     }
                 } else {
                     digitColumn.put(word, column);
@@ -69,6 +76,10 @@ public class Text {
                 List<String> list = new ArrayList<>();
                 list.add(String.valueOf(curLineWords));
                 groups.add(list);
+            } else {
+                for (String s : curLineWords) {
+                    digitGroup.put(s, indexCurrentGroup);
+                }
             }
         }
         return groups;
@@ -76,7 +87,7 @@ public class Text {
 
     public void printToFile(List<List<String>> groups, String fileName, int goodGroups) throws IOException {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
-            writer.write("количество полученных групп с более чем одним элементом: " + goodGroups);
+            writer.write("количество групп с более чем одним элементом: " + goodGroups);
             writer.newLine();
             groups.sort(new GroupOfLinesComparator());
             int i = 1; //groups

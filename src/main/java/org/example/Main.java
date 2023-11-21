@@ -17,7 +17,7 @@ public class Main {
         Set<String> lines = text.parseText(file);
         System.out.println("Количество строк: " + lines.size());
         List<List<String>> groups = text.setGroups(lines);
-        System.out.println("Количество полученных групп: " + groups.size());
+        System.out.println("Количество групп: " + groups.size());
 
         int goodGroups = 0;
         for (List<String> list : groups) {
