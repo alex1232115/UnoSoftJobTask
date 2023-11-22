@@ -10,8 +10,8 @@ public class Main {
     public static void main(String[] args) throws IOException {
         long startTiming = System.currentTimeMillis();
 
-        String fileName = args[0];
-        File file = new File(fileName);
+//        String fileName = args[0];
+        File file = new File("C:\\Users\\alash\\IdeaProjects\\unoSoftTask\\src\\main\\resources\\lng.txt");
 
         Text text = new Text();
         Set<String> lines = text.parseText(file);
