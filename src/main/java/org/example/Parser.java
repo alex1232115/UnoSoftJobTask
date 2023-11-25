@@ -1,9 +1,6 @@
 package org.example;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 public class Parser {
@@ -17,13 +14,41 @@ public class Parser {
         int goodGroups = 0;
         for (List<String[]> list : groups) {
             if (list.size() > 1) {
+
                 goodGroups++;
+
             }
         }
         System.out.println(goodGroups);
 
+        writeToFile(groups, goodGroups);
+
         long end = System.currentTimeMillis();
         System.out.printf("Время работы программы: %d миллисекунд", (end - start));
+    }
+
+    private static void writeToFile(List<List<String[]>> groups, int goodGroups) throws IOException {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("resultParser.txt"))) {
+            writer.write("количество групп с более чем одним элементом: " + goodGroups);
+            writer.newLine();
+            groups.sort((o1, o2) -> Integer.compare(o2.size(), o1.size()));
+            int i = 1; //groups
+            for (List<String[]> group : groups) {
+                int j = 1; //lines
+                writer.write("Группа " + i);
+                writer.newLine();
+                for (String[] line: group) {
+                    StringBuilder current = new StringBuilder("строчка " + j + ": ");
+                    for (String word : line) {
+                        current.append("\"").append(word).append("\";");
+                    }
+                    writer.write(String.valueOf(current));
+                    writer.newLine();
+                    j++;
+                }
+                i++;
+            }
+        }
     }
 
     private static List<List<String[]>> divisionIntoGroups(List<String[]> lines) {
@@ -34,7 +59,8 @@ public class Parser {
 
         for (String[] line : lines) {
             int colNum = 0; // номер столбца
-            List<Integer> groupsThatMatch = new ArrayList<>(); //список с номера групп, которые совпали по столбцам
+            List<Integer> groupsThatMatch = new ArrayList<>();//список с номера групп, которые совпали по столбцам
+
             for (String word : line) {
                 if (word.equals("")) { //если слово ""
                     colNum++;
@@ -50,19 +76,19 @@ public class Parser {
 
                     }
                 } else {
-                    wordGroupColumn.put(word, new int[] {-1, colNum}); //группу инициализирую -1, чтобы не спутать с первой группой
+                    wordGroupColumn.put(word, new int[] {groups.size(), colNum}); //группу инициализирую -1, чтобы не спутать с первой группой
                 }
             }
             // мердж совпадающих групп или создание одной новой
             if (groupsThatMatch.size() == 0) {
 
                 //заполнение номера группы
-                int groupNum = groups.size();
-                for (String word : line) {
-                    if (!word.equals(""))  {
-                        wordGroupColumn.get(word)[0] = groupNum;
-                    }
-                }
+//                int groupNum = groups.size();
+//                for (String word : line) {
+//                    if (!word.equals(""))  {
+//                        wordGroupColumn.get(word)[0] = groupNum;
+//                    }
+//                }
                 //создание новой группы
                 List<String[]> list = new ArrayList<>();
                 list.add(line);
@@ -71,6 +97,9 @@ public class Parser {
                 mergeLinesInGroup(line, groupsThatMatch, groups, wordGroupColumn);
             }
         }
+
+//        List<Set<String[]>> result =  new ArrayList<>();
+//        groups.stream().forEach(list -> result.add(Set.copyOf(list)));
         return groups;
     }
 
@@ -126,6 +155,4 @@ public class Parser {
             }
             return true;
         }
-
-
     }
