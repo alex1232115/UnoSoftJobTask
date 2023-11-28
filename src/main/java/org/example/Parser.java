@@ -6,29 +6,32 @@ import java.util.*;
 public class Parser {
     public static void main(String[] args) throws IOException {
         long start = System.currentTimeMillis();
+        System.out.println("Запуск парсера");
 
-//        String fileName = args[0];
-        File file = new File("C:\\Users\\alash\\IdeaProjects\\unoSoftTask\\src\\main\\resources\\lng.txt");
+        String fileName = args[0];
+        File file = new File(fileName);
         List<String[]> lines = parseFromFile(file);
         List<List<String[]>> groups = divisionIntoGroups(lines);
-        int goodGroups = 0;
-        for (List<String[]> list : groups) {
-            if (list.size() > 1) {
-
-                goodGroups++;
-
-            }
-        }
-        System.out.println(goodGroups);
-
+        int goodGroups = countGoodGroups(groups);
         writeToFile(groups, goodGroups);
 
         long end = System.currentTimeMillis();
         System.out.printf("Время работы программы: %d миллисекунд", (end - start));
     }
 
+    private static int countGoodGroups(List<List<String[]>> groups) {
+        int goodGroups = 0;
+        for (List<String[]> list : groups) {
+            if (list.size() > 1) {
+                goodGroups++;
+            }
+        }
+        System.out.println("Количество групп с более чем одним элементом: " + goodGroups);
+        return goodGroups;
+    }
+
     private static void writeToFile(List<List<String[]>> groups, int goodGroups) throws IOException {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("resultParser.txt"))) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("result.txt"))) {
             writer.write("количество групп с более чем одним элементом: " + goodGroups);
             writer.newLine();
             groups.sort((o1, o2) -> Integer.compare(o2.size(), o1.size()));
@@ -37,7 +40,7 @@ public class Parser {
                 int j = 1; //lines
                 writer.write("Группа " + i);
                 writer.newLine();
-                for (String[] line: group) {
+                for (String[] line : group) {
                     StringBuilder current = new StringBuilder("строчка " + j + ": ");
                     for (String word : line) {
                         current.append("\"").append(word).append("\";");
@@ -53,77 +56,87 @@ public class Parser {
 
     private static List<List<String[]>> divisionIntoGroups(List<String[]> lines) {
 
-        // 1 List - номер группы, 2 List - номер строки, String[] - сами строки
-        List<List<String[]>> groups = new ArrayList<>();
+        Map<Integer, List<String[]>> groups = new HashMap<>(); // номер группы: содержимое группы (строки)
 
-        Map<String, int[]> wordGroupColumn = new HashMap<>(); //слово - 2(номер группы) 1(номер слолбца)
+        Map<String, Map<Integer, Integer>> wordGroupColumn = new HashMap<>(); //слово: номер стобца: группа
+
+        int groupIndex = 0; // уникальный индекс с каждой группой
 
         for (String[] line : lines) {
             int colNum = 0; // номер столбца
-            List<Integer> groupsThatMatch = new ArrayList<>();//список с номера групп, которые совпали по столбцам
-
+            Set<Integer> groupsThatMatch = new HashSet<>();//список с номера групп, которые совпали по столбцам
+            int blankWords = 0;
             for (String word : line) {
-                if (word.equals("")) { //если слово ""
+                if (word.equals("")) {
+                    blankWords++;
                     colNum++;
                     continue;
                 }
-                //TODO Переделать для прохода по колонкам, а не по строкам, тогда по памяти и проходу не будет проблем
+
                 if (wordGroupColumn.containsKey(word)) {
-                    if (wordGroupColumn.get(word)[1] == colNum) {
+                    if (wordGroupColumn.get(word).containsKey(colNum)) {
                         // добавление строки в группу
-                        int numberOfGroup = wordGroupColumn.get(word)[0];
-//                    groups.get(numberOfGroup).add(line);
+                        int numberOfGroup = wordGroupColumn.get(word).get(colNum);
                         groupsThatMatch.add(numberOfGroup);
 
+                    } else {
+                        wordGroupColumn.get(word).put(colNum, groupIndex);
                     }
                 } else {
-                    wordGroupColumn.put(word, new int[] {groups.size(), colNum}); //группу инициализирую -1, чтобы не спутать с первой группой
+                    // Добавление номера группы и столбца для текущего слова
+                    Map<Integer, Integer> map = new HashMap<>();
+                    map.put(colNum, groupIndex);
+                    wordGroupColumn.put(word, map);
                 }
                 colNum++;
             }
+            if (line.length == blankWords) {
+                continue;
+            }
+
             // мердж совпадающих групп или создание одной новой
             if (groupsThatMatch.size() == 0) {
-
-                //заполнение номера группы
-//                int groupNum = groups.size();
-//                for (String word : line) {
-//                    if (!word.equals(""))  {
-//                        wordGroupColumn.get(word)[0] = groupNum;
-//                    }
-//                }
                 //создание новой группы
                 List<String[]> list = new ArrayList<>();
                 list.add(line);
-                groups.add(list);
+                groups.put(groupIndex, list);
             } else {
-                mergeLinesInGroup(line, groupsThatMatch, groups, wordGroupColumn);
+                //мердж совпадающих групп
+                List<Integer> groupsMatch = new ArrayList<>(groupsThatMatch);
+                mergeLinesInGroup(line, groupsMatch, groups, wordGroupColumn);
             }
+
+            groupIndex++;
         }
 
-//        List<Set<String[]>> result =  new ArrayList<>();
-//        groups.stream().forEach(list -> result.add(Set.copyOf(list)));
-        return groups;
+        //преобразование сета в лист
+        List<List<String[]>> result = new ArrayList<>();
+        for (Map.Entry<Integer, List<String[]>> group : groups.entrySet()) {
+            result.add(group.getValue());
+        }
+        return result;
     }
 
-    private static void mergeLinesInGroup(String[] curLine, List<Integer> groupsThatMatch, List<List<String[]>> groups, Map<String, int[]> wordGroupColumn) {
-        int mainGroup = groupsThatMatch.get(0); //merge into it
+    private static void mergeLinesInGroup(String[] curLine, List<Integer> groupsThatMatch, Map<Integer, List<String[]>> groups, Map<String, Map<Integer, Integer>> wordGroupColumn) {
+        int mainGroup = groupsThatMatch.get(0); // индекс группы, в которую буду мерджить остальные строки
         List<String[]> newGroup = groups.get(mainGroup);
         newGroup.add(curLine);
 
-        for (String word: curLine) {
-            if (!word.equals("")) {
-                wordGroupColumn.get(word)[0] = mainGroup;
+        for (int i = 0; i < curLine.length; i++) {
+            if (!curLine[i].equals("")) {
+                wordGroupColumn.get(curLine[i]).put(i, mainGroup);
             }
         }
 
         for (int i = 1; i < groupsThatMatch.size(); i++) {
             int indexMergedGroup = groupsThatMatch.get(i);
+            groups.get(indexMergedGroup);
             newGroup.addAll(groups.get(indexMergedGroup));
             //меняю группу в мапе для каждого слова
-            for (String[] line: groups.get(indexMergedGroup)) {
-                for (String word: line) {
-                    if (!word.equals("")) {
-                        wordGroupColumn.get(word)[0] = mainGroup;
+            for (String[] line : groups.get(indexMergedGroup)) {
+                for (int j = 0; j < line.length; j++) {
+                    if (!line[j].equals("")) {
+                        wordGroupColumn.get(line[j]).put(j, mainGroup);
                     }
                 }
             }
@@ -131,31 +144,30 @@ public class Parser {
         }
     }
 
-    private static List<String[]> parseFromFile (File file) throws IOException {
-        /* использую для хранения значений стрингу, так как не до конца понятен диапазон
-         возможных знаний (такой пример не поместится даже в long 83100000580443402  */
-            List<String[]> wordsOnEveryLines = new ArrayList<>();
-            Set<String> lines = new HashSet<>();
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                String str = reader.readLine();
-                while (str != null) {
-                    if (isValidLine(str) && !lines.contains(str)) {
-                        lines.add(str);
-                        String[] curLine = str.replace("\"", "").split(";");
-                        wordsOnEveryLines.add(curLine);
-                    }
-                    str = reader.readLine();
+    private static List<String[]> parseFromFile(File file) throws IOException {
+        // использую для хранения значений стрингу
+        List<String[]> wordsOnEveryLines = new ArrayList<>();
+        Set<String> lines = new HashSet<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String str = reader.readLine();
+            while (str != null) {
+                if (isValidLine(str) && !lines.contains(str)) {
+                    lines.add(str);
+                    String[] curLine = str.replace("\"", "").split(";");
+                    wordsOnEveryLines.add(curLine);
                 }
+                str = reader.readLine();
             }
-            return wordsOnEveryLines;
         }
-
-        private static boolean isValidLine (String str){
-            for (String element : str.split(";")) {
-                if (!element.matches("\"\\d*\"")) {
-                    return false;
-                }
-            }
-            return true;
-        }
+        return wordsOnEveryLines;
     }
+
+    private static boolean isValidLine(String str) {
+        for (String element : str.split(";")) {
+            if (!element.matches("\"\\d*\"")) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
