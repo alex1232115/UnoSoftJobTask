@@ -52,6 +52,7 @@ public class Parser {
     }
 
     private static List<List<String[]>> divisionIntoGroups(List<String[]> lines) {
+
         // 1 List - номер группы, 2 List - номер строки, String[] - сами строки
         List<List<String[]>> groups = new ArrayList<>();
 
@@ -66,7 +67,7 @@ public class Parser {
                     colNum++;
                     continue;
                 }
-                //TODO сформировалась неправильная группа
+                //TODO Переделать для прохода по колонкам, а не по строкам, тогда по памяти и проходу не будет проблем
                 if (wordGroupColumn.containsKey(word)) {
                     if (wordGroupColumn.get(word)[1] == colNum) {
                         // добавление строки в группу
@@ -78,6 +79,7 @@ public class Parser {
                 } else {
                     wordGroupColumn.put(word, new int[] {groups.size(), colNum}); //группу инициализирую -1, чтобы не спутать с первой группой
                 }
+                colNum++;
             }
             // мердж совпадающих групп или создание одной новой
             if (groupsThatMatch.size() == 0) {
@@ -125,6 +127,7 @@ public class Parser {
                     }
                 }
             }
+            groups.remove(indexMergedGroup);
         }
     }
 
