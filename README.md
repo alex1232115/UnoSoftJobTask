@@ -12,4 +12,4 @@ This program will count, group and output data from your txt file
 
 
 <h2> Task </h2>
-You can write task problem here [unoSoftTask]<https://github.com/PeacockTeam/new-job/blob/master/lng%26java>
+You can write task problem here **[unoSoftTask](https://github.com/PeacockTeam/new-job/blob/master/lng%26java)**
