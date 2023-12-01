@@ -9,7 +9,8 @@ public class Parser {
         System.out.println("Запуск парсера");
 
         String fileName = args[0];
-        File file = new File(fileName);
+        String bigFile = "C:\\Users\\alash\\IdeaProjects\\unoSoftTask\\target\\lng-big.txt";
+        File file = new File(bigFile);
         List<String[]> lines = parseFromFile(file);
         List<List<String[]>> groups = divisionIntoGroups(lines);
         int goodGroups = countGoodGroups(groups);
@@ -164,7 +165,7 @@ public class Parser {
 
     private static boolean isValidLine(String str) {
         for (String element : str.split(";")) {
-            if (!element.matches("\"\\d*\"")) {
+            if (!element.matches("\"?\\d*.?\\d*\"?")) {
                 return false;
             }
         }
